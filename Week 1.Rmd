@@ -1,0 +1,75 @@
+---
+title: "Week 1"
+author: "Me"
+date: "12/8/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(XML)
+fileUrl = 'https://www.w3schools.com/Xml/simple.xml'
+doc = xmlTreeParse(fileUrl, useInternalNodes = T)
+```
+
+```{r}
+data = read.csv('https://d396qusza40orc.cloudfront.net/getdata%2Fdata%2Fss06hid.csv')
+data
+```
+```{r}
+library(tidyverse)
+data %>%
+      filter(VAL == 24)
+
+DT = as.data.table(data)
+DT[order(-VAL), .N, by = VAL ]
+```
+```{r}
+DT[unique(FES),.(FES)]
+data %>%
+      select(FES) %>%
+      group_by(FES) %>%
+      count()
+```
+
+```{r}
+library(xlsx)
+
+dat = read.xlsx('getdata_data_DATA.gov_NGAP.xlsx', sheetIndex = 1, rowIndex = 18:23, colIndex = 7:15)
+sum(dat$Zip*dat$Ext,na.rm=T)
+```
+
+```{r}
+library(XML)
+url = 'http://d396qusza40orc.cloudfront.net/getdata%2Fdata%2Frestaurants.xml'
+doc <- xmlTreeParse(url, useInternal = TRUE)
+root_node = xmlRoot(doc)
+names(root_node)
+
+zipcodes = xpathSApply(root_node, '//zipcode', xmlValue)
+zipcodes[zipcodes == '21231'] %>%
+      length()
+```
+```{r}
+DT = fread('https://d396qusza40orc.cloudfront.net/getdata%2Fdata%2Fss06pid.csv')
+DT[,.(pwgtp15)]
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

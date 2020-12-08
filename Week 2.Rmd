@@ -1,0 +1,267 @@
+---
+title: "Week 2"
+author: "Me"
+date: "12/8/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#MySql
+
+```{r}
+install.packages('RMySQL')
+library(RMySQL)
+```
+
+connect database
+```{r}
+ucsc_db = dbConnect(MySQL(), user = 'genome', host = 'genome-mysql.cse.ucsc.edu')
+result = dbGetQuery(ucsc_db, 'show databases;')
+```
+
+connecting to hg19
+```{r}
+hg19 = dbConnect(MySQL(), user = 'genome', db = 'hg19', host = 'genome-mysql.cse.ucsc.edu')
+all_tables = dbListTables(hg19)
+length(all_tables)
+head(all_tables)
+```
+
+Get dimensions of a specific table
+```{r}
+dbListFields(hg19, 'affyU133Plus2')
+```
+
+```{r}
+dbGetQuery(hg19, 'SELECT COUNT(*) FROM affyU133Plus2')
+```
+
+Read data from table
+```{r}
+affy_data = dbReadTable(hg19, 'affyU133Plus2')
+```
+
+Select specific subset
+
+```{r}
+query = dbSendQuery(hg19, 'SELECT * FROM affyU133Plus2
+                              WHERE misMatches BETWEEN 1 AND 3')
+
+affy_mis = fetch(query)
+quantile(affy_mis$misMatches)
+```
+
+```{r}
+affy_mis_small = fetch(query, n = 10)
+dbClearResult(query) #clear query from remote server
+affy_mis_small
+```
+
+Close connection
+```{r}
+dbDisconnect(hg19)
+dbDisconnect(ucsc_db)
+```
+
+# HDF5
+
+For large datasets
+Hierarchical data format
+
+Groups containing zero or more datasets and metadata
+- have a group header with group name and list of attributes
+- have a group symbol table with list of objects in a group.
+
+Datasets multidimensional array of data elements with metadata.
+- have a header with name, datatype, datastorage, storage layout
+
+```{r}
+install.packages("BiocManager")
+library(BiocManager)
+BiocManager::install("rhdf5")
+library(rhdf5)
+```
+```{r}
+created = h5createFile('example.h5')
+```
+Create groups
+```{r}
+created = h5createGroup('example.h5', 'foo')
+created = h5createGroup('example.h5', 'baa')
+created = h5createGroup('example.h5', 'foo/foobaa') #subgroup
+
+#list files
+h5ls('example.h5')
+```
+
+Write to groups
+```{r}
+A = matrix(1:10, nr = 5, nc = 2)
+h5write(A, 'example.h5', 'foo/A')
+
+B = array(seq(.1, 2, by = .1), dim = c(5,2,2))
+attr(B, 'scale') = 'liter' #add attribute
+
+h5write(B, 'example.h5', 'foo/foobaa/B')
+h5ls('example.h5')
+```
+
+read data
+```{r}
+h5read('example.h5', 'foo/A')
+```
+
+Writing and reading chunks
+```{r}
+h5write(c(12,13,14), 'example.h5','foo/A', index = list(1:3,1))
+h5read('example.h5','foo/A')
+```
+
+# Reading data from the web
+
+```{r}
+con = url('https://scholar.google.com/citations?user=HI-I6C0AAAAJ&hl=en')
+html_code = readLines(con)
+close(con)
+html_code
+```
+
+Parsing with XML
+```{r}
+library(XML)
+url = 'http://scholar.google.com/citations?user=HI-I6C0AAAAJ&hl=en'
+html = htmlTreeParse(url, useInternal = T)
+```
+
+Use get from httr
+```{r}
+library(httr)
+html = GET(url) #
+content = content(html, as = 'text') #extract content from html page
+parsed_html = htmlParse(content, asText = T) #to parse out text to look like html
+xpathSApply(parsed_html, '//title', xmlValue)
+```
+
+Accessing websites with password
+```{r}
+pg1 = GET('http://httpbin.org/basic-auth/user/passwd')
+```
+
+```{r}
+pg2 = GET('http://httpbin.org/basic-auth/user/passwd', 
+          authenticate('user','passwd'))
+pg2
+```
+
+Using handles
+```{r}
+google = handle('http://google.com')
+pg1 = GET(handle = google, path = '/')
+pg2 = GET(handle = google, path = 'search')
+```
+
+
+##Reading from APIs
+
+```{r}
+my_app = oauth_app('twitter', key = 'consumerkeyhere', secret = 'consumersecrethere')
+sig = sign_oauth1.0(my_app. token = 'token here', token_secret = 'token secret here')
+home_tl = GET('https://api.twitter.com/1.1/statuses/home_timeline.json', sig) #will return json data
+```
+
+
+```{r}
+json1 = content(home_tl)
+json2 = jsonlite::fromJSON(tojson(json1)) #json structure - structured object back to json - fromJson to create dataframe
+json[1,1:4]
+```
+
+
+httr allows GET, POST, PUT, DELETE if you are authorized
+Most modern APIs use oauth
+httr works well with facebook, google, twitter, github, etc.
+
+## Readign from other sources
+
+Read images
+Read from other database
+Read GIS data
+Reading Music data
+
+
+#Quiz
+```{r}
+library(httr)
+library(jsonlite)
+
+# 1. Find OAuth settings for github:
+#    http://developer.github.com/v3/oauth/
+oauth_endpoints("github")
+
+# 2. To make your own application, register at
+#    https://github.com/settings/developers. Use any URL for the homepage URL
+#    (http://github.com is fine) and  http://localhost:1410 as the callback url
+#
+#    Replace your key and secret below.
+myapp <- oauth_app("Coursera_Getting_Cleaning_Data",
+  key = "key",
+  secret = "secret"
+)
+
+# 3. Get OAuth credentials
+github_token <- oauth2.0_token(oauth_endpoints("github"), myapp)
+
+# 4. Use API
+gtoken <- config(token = github_token)
+req <- GET("https://api.github.com/users/jtleek/repos", gtoken)
+stop_for_status(req)
+content(req)
+
+# OR:
+req <- with_config(gtoken, GET("https://api.github.com/users/jtleek/repos"))
+stop_for_status(req)
+content(req)
+
+```
+
+```{r}
+
+json = content(req)
+data = fromJSON(toJSON(json))
+
+library(tidyverse)
+data %>%
+      filter(str_detect(full_name,'datasharing')) %>%
+      select(created_at) %>%
+      unlist(.$created_at)
+```
+
+```{r}
+url = 'http://biostat.jhsph.edu/~jleek/contact.html'
+conn = url(url)
+html_lines = readLines(conn)
+close(conn)
+
+for (i in c(10, 20, 30, 100)){
+      print(nchar(html_lines[i]))
+}
+```
+
+```{r}
+url = 'https://d396qusza40orc.cloudfront.net/getdata%2Fwksst8110.for'
+lines = readLines(url, n = 10)
+
+#got this from stackoverflow
+data = read.fwf(file = url,  skip= 4,
+  widths=c(12, 7, 4, 9, 4, 9, 4, 9, 4)) 
+
+#sum of 4th column
+data %>%
+      select(V4) %>%
+      summarise(sum = sum(V4))
+```
+
+
