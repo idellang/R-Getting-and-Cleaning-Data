@@ -1,0 +1,193 @@
+---
+title: "Week 3"
+author: "Me"
+date: "12/9/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Subsetting and sorting
+```{r}
+set.seed(13435)
+X = data.frame('var1' = sample(1:5), 'var2'= sample(6:10), var3 = sample(11:15))
+X[,1]
+```
+```{r}
+X[X$var1<3, ]
+```
+
+Which does not return NA
+```{r}
+X[which(X$var2 > 8),]
+```
+Sorting
+```{r}
+sort(X$var1)
+sort(X$var1, decreasing = T)
+```
+
+Order
+```{r}
+X[order(X$var1),]
+X[order(X$var1, X$var3),]
+```
+
+## Summarizing data
+
+
+Functions
+head
+tail
+summary
+str
+quantile(na.rm = T, probs = c(.5, .75, .9))
+table(x, useNA = 'ifany')
+sum(is.na())
+any(is.na())
+all()
+colSums()
+all(colsums(is.na(data)) = 0) #TRUe if no missing
+table(var %In% c('A','B'))
+
+Crosstabs
+```{r}
+data("UCBAdmissions")
+DF = as.data.frame(UCBAdmissions)
+xt = xtabs(Freq ~ Gender + Admit, data = DF)
+xt
+```
+
+Flat table
+```{r}
+data("warpbreaks")
+warpbreaks$replicate = rep(1:9, len = 54)
+xt = xtabs(breaks ~., data = warpbreaks) #value is breaks
+ftable(xt)
+```
+
+#Creating new variables
+
+Common variables to create
+- missingness indicator
+- cutting up variables
+- transformations
+
+Sequences
+```{r}
+seq(1,10, by = 2)
+```
+Creating variable using ifelse
+```{r}
+ifelse(condition, TRUE, FALSE)
+```
+
+Creating categorical variables using cut
+```{r}
+cut(variable, breaks = value)
+```
+
+Easier cutting using cut2 on Hmisc library
+
+Creating factor variables using factor()
+
+Levels of factor variables
+```{r}
+yesno = sample(c('yes','no'), size = 10, replace = T)
+yesnofac = factor(yesno, levels = c('yes','no'))
+relevel(yesnofac, ref = 'yes')
+```
+Common transforms
+abs(x)
+sqrt(x)
+ceiling(x) 
+floor(x)
+round(x, digits = n)
+signif(x, digits = n)
+cos(x), sin(x) etc
+log(x)
+log2(x), log10(x)
+exp(x)
+
+
+#Quiz
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+data = read_csv('https://d396qusza40orc.cloudfront.net/getdata%2Fdata%2Fss06hid.csv')
+head(data)
+agricultureLogical = data$ACR == 3 & data$AGS == 6
+which(agricultureLogical)
+```
+
+```{r}
+library(jpeg)
+data = readJPEG('getdata_jeff.jpg', native = T)
+quantile(data, probs = c(.3,.8))
+```
+
+```{r}
+gdp = read_csv('https://d396qusza40orc.cloudfront.net/getdata%2Fdata%2FGDP.csv', skip = 3) %>%
+      select(c(1,2,4,5)) %>%
+      janitor::clean_names() %>%
+      rename(country_code = x1)
+
+educational = read_csv('https://d396qusza40orc.cloudfront.net/getdata%2Fdata%2FEDSTATS_Country.csv') %>%
+      janitor::clean_names()
+
+
+merge(gdp, educational, by = c('country_code' = 'country_code')) %>%
+      filter(!is.na(ranking)) %>%
+      mutate(ranking = as.numeric(ranking)) %>%
+      arrange(desc(ranking)) %>%
+      slice(n = 13)
+```
+
+```{r}
+merge(gdp, educational, by = c('country_code' = 'country_code')) %>%
+      filter(!is.na(ranking)) %>%
+      filter(income_group =='High income: nonOECD' | income_group == 'High income: OECD') %>%
+      mutate(ranking = as.numeric(ranking)) %>%
+      group_by(income_group) %>%
+      summarise(ranking = mean(ranking))
+      
+```
+```{r}
+merged = merge(gdp, educational, by = c('country_code' = 'country_code')) %>%
+      filter(!is.na(ranking)) %>%
+      mutate(ranking = as.numeric(ranking))
+
+quantile_ranking = quantile(merged$ranking, probs = seq(0,1, .2), na.rm = T)
+
+merged %>%
+      mutate(quantile_ranking = cut(.$ranking, breaks = quantile_ranking)) %>%
+      filter(income_group=='Lower middle income') %>%
+      group_by(quantile_ranking) %>%
+      count() %>%
+      arrange(quantile_ranking)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

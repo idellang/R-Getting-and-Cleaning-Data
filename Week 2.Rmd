@@ -239,6 +239,8 @@ data %>%
       unlist(.$created_at)
 ```
 
+I already know how to SQL.
+
 ```{r}
 url = 'http://biostat.jhsph.edu/~jleek/contact.html'
 conn = url(url)
